@@ -1,0 +1,56 @@
+def save_video_names(video_names):
+    df = pd.DataFrame({"Video Name": video_names})
+    df.to_excel("video_names.xlsx", index=False)
+    print("Nomes dos vídeos salvos com sucesso!")
+
+# Fluxo principal do Airflow
+def main():
+    video_names = get_video_names()
+    save_video_names(video_names)
+    driver.quit()
+
+# EDGE
+from selenium import webdriver
+from selenium.webdriver.edge.service import Service
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from selenium.webdriver.common.by import By
+import time
+
+class Principal(webdriver.Edge):
+    def __init__(self):
+        options = webdriver.ChromeOptions().add_experimental_option('excludeSwitches', ['enable-logging'])
+        service = Service(EdgeChromiumDriverManager().install())
+        super(Principal, self).__init__(service=service,options=options)
+        self.maximize_window()
+
+
+# MOZILA FIREFOX
+from selenium import webdriver
+from selenium.webdriver.firefox.service import Service
+from webdriver_manager.firefox import GeckoDriverManager
+from selenium.webdriver.common.by import By
+import time
+
+class Principal(webdriver.Firefox):
+    def __init__(self):
+        options = webdriver.ChromeOptions().add_experimental_option('excludeSwitches', ['enable-logging'])
+        service = Service(GeckoDriverManager().install())
+        super(Principal, self).__init__(service=service,options=options)
+        self.maximize_window()
+
+
+#CHROME
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+import time
+        
+class Principal(webdriver.Chrome):
+    def __init__(self):        
+        options = webdriver.ChromeOptions()
+        options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        service = Service(ChromeDriverManager().install())
+        super(Principal, self).__init__(service=service,options=options)
+        self.maximize_window()

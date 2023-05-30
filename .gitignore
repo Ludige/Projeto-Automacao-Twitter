@@ -1,0 +1,4 @@
+# Ignore a pasta logs
+node_modules
+config
+logs
