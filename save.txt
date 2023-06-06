@@ -3,11 +3,13 @@ def save_video_names(video_names):
     df.to_excel("video_names.xlsx", index=False)
     print("Nomes dos vídeos salvos com sucesso!")
 
-# Fluxo principal do Airflow
-def main():
-    video_names = get_video_names()
-    save_video_names(video_names)
-    driver.quit()
+
+    inserir_dados = PostgresOperator(
+        task_id = 'inserir_dados',
+        postgres_conn_id = 'postgres_default',
+        sql = 'insert_data.sql',
+        params = {'u_name': "", 'u_id': ""}
+    )
 
 # EDGE
 from selenium import webdriver

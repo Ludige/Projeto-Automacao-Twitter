@@ -25,9 +25,9 @@ class Principal(webdriver.Chrome):
         self.maximize_window()
 
     def login(self):
-        email = ""
-        password = ""
-        twitter = ""
+        email = "luiggimario2014@gmail.com" #Mudar para varivale global
+        password = "fairytail"
+        twitter = "PixVulture"
         self.get("https://twitter.com/i/flow/login")
         email_box = WebDriverWait(self, 5).until(EC.presence_of_element_located((By.XPATH, '//*[@id="layers"]/div/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div/div[5]/label')))
         submit = WebDriverWait(self, 5).until(EC.presence_of_element_located((By.XPATH, '//*[@id="layers"]/div/div/div/div/div/div/div[2]/div[2]/div/div/div[2]/div[2]/div/div/div/div[6]/div')))
@@ -52,7 +52,7 @@ class Principal(webdriver.Chrome):
         time.sleep(3)
     
     def pegar_dados(self):
-        twitter = ""
+        twitter = "PixVulture"
         self.get("https://twitter.com/"+twitter+"/followers")
         
         list_followers = []
