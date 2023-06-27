@@ -1,16 +1,3 @@
-def save_video_names(video_names):
-    df = pd.DataFrame({"Video Name": video_names})
-    df.to_excel("video_names.xlsx", index=False)
-    print("Nomes dos vídeos salvos com sucesso!")
-
-
-    inserir_dados = PostgresOperator(
-        task_id = 'inserir_dados',
-        postgres_conn_id = 'postgres_default',
-        sql = 'insert_data.sql',
-        params = {'u_name': "", 'u_id': ""}
-    )
-
 # EDGE
 from selenium import webdriver
 from selenium.webdriver.edge.service import Service
@@ -56,3 +43,18 @@ class Principal(webdriver.Chrome):
         service = Service(ChromeDriverManager().install())
         super(Principal, self).__init__(service=service,options=options)
         self.maximize_window()
+
+
+        from airflow import DAG
+
+
+// GRAFICO
+
+import plotly.express as px
+import pandas as pd
+categories = pd.read_excel("results/coleta/2023-06-23 16-48.xlsx")
+
+columns = categories.columns.tolist()
+fig1 = px.pie(categories, values = columns[1], names = columns[0], title="Categorias mais assistidas da Twitch")
+fig1.show()
+

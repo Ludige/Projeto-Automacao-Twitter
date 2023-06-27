@@ -1,1 +1,0 @@
-INSERT INTO FOLLOWERS_LIST (user_name, user_id) values ({{params.u_name}}, {{params.u_id}})

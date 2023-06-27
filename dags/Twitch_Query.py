@@ -1,0 +1,131 @@
+from airflow import DAG
+from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.operators.postgres import PostgresOperator
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from datetime import datetime, timedelta
+# from airflow.models import Variable
+# import time
+
+categories_list = []
+
+class Categories:
+    def __init__(self, categorie, viewer_count):
+        self.categorie_name = categorie
+        self.categorie_viewer_count = viewer_count        
+        
+class Principal():
+    def __init__(self):        
+        from selenium.webdriver.chrome.options import Options as ChromeOptions
+        from selenium.webdriver.chrome.service import Service as ChromeService
+        from webdriver_manager.chrome import ChromeDriverManager
+        from selenium import webdriver
+        from webdriver_manager.core.utils import ChromeType
+
+        options = ChromeOptions()
+        prefs = {
+            'profile.managed_default_content_settinfs.images': 2,
+            'intl.accept_languages': 'en, en_US'
+        }
+        options.add_experimental_option('prefs', prefs)
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--headless')
+
+        self._driver = webdriver.Chrome(
+            service = ChromeService(
+                ChromeDriverManager(
+                    chrome_type = ChromeType.CHROMIUM
+                ).install()
+            ),
+            options = options
+        )
+        self._driver.implicitly_wait(5)
+            
+    
+    def collect_data(self):
+        self._driver.get("https://www.twitch.tv/directory?sort=VIEWER_COUNT")
+        
+        try:
+            hook = PostgresHook("projeto_final")
+            conn = hook.get_conn()
+            cursor = conn.cursor()
+            
+            #esvaziar lista
+            categories_list = []
+            for i in range(2,50):
+                if(i == 20):#Scroll
+                    self._driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                    WebDriverWait(self._driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="browse-root-main-content"]/div[4]/div/div[1]/div['+31+']/div/div/div/div/div[1]/div/div/div/div/span/a/h2'))).text
+                
+                #
+                categorie_name = WebDriverWait(self._driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="browse-root-main-content"]/div[4]/div/div[1]/div['+str(i)+']/div/div/div/div/div[1]/div/div/div/div/span/a/h2'))).text
+                categorie_viewer_count = WebDriverWait(self._driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="browse-root-main-content"]/div[4]/div/div[1]/div['+str(i)+']/div/div/div/div/div[1]/div/div/p/a'))).text
+                #
+                categorie_name = categorie_name.replace("ó", "o").replace("ú","u").replace("Ó","O").replace("Ú","U")
+                categorie_viewer_count = categorie_viewer_count.replace("espectadores", "").replace("viewers", "").replace(" mil ","").replace(" K ", "")
+                
+                sql = f"INSERT INTO categories_list(categories_name, categories_viewer_count) values ('{categorie_name}','{categorie_viewer_count}')"
+                
+                categories_list.append((categorie_name,categorie_viewer_count))
+                cursor.execute(sql) 
+                conn.commit()
+                
+        except (Exception) as error:
+            print(error)
+            
+    
+    def save_file(self):
+        import pandas as pd
+
+        file = pd.read_excel("/opt/airflow/results/resultado.xlsx", engine='openpyxl', dtype=str)
+        
+        for i in range(len(categories_list)):
+            file.at[i,'Categoria'] = categories_list[i][0]
+            file.at[i,'Quantidade de Visualizações'] = categories_list[i][1]
+            
+        current_time = datetime.now()
+        current_time = current_time.strftime('%Y-%m-%d %H-%M')
+        file.to_excel(f"/opt/airflow/results/coleta/{current_time}.xlsx",index=False)
+        
+dag_args = {
+    'owner': '',
+    'retries': 0,
+    'retry_delay': timedelta(minutes = 1)
+}
+
+start_date = datetime(2023,1,1)
+
+with DAG(
+    dag_id = 'twitch',
+    description = '', 
+    default_args = dag_args,
+    start_date = start_date,
+    schedule = timedelta(hours=2),
+    catchup = False
+) as dag:    
+    coletar_dados = PythonOperator(
+        task_id = 'Coletar',
+        python_callable =  Principal().collect_data,
+    )
+    
+    criar_tabela = PostgresOperator(
+        task_id='Criar_Tabela',
+        postgres_conn_id='projeto_final',
+        sql = """
+            CREATE TABLE IF NOT EXISTS categories_list(
+                ID INT GENERATED BY DEFAULT AS IDENTITY,
+                categories_name VARCHAR NOT NULL,
+                categories_viewer_count VARCHAR NOT NULL
+            )
+            """
+    )
+    
+    buscar_dados = PythonOperator(
+        task_id = 'Buscar',
+        python_callable =  Principal().save_file,
+    )
+    
+criar_tabela >> coletar_dados >> buscar_dados
